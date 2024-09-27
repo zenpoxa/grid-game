@@ -1,6 +1,84 @@
 <script>
+    import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
+
 	export let data;
 
+	// Eviter d'afficher le contextMenu à chaque click droit sur la grille
+	onMount(() => {
+		document.getElementById("grillage").addEventListener('contextmenu', (e) => {
+			e.preventDefault();
+		});
+	})
+
+	function handleMouseEvent(event) {
+		// clic gauche -> ajout
+		if (event.button === 0) {
+			ajouterBlock(event)
+		} else if (event.button === 2) {
+			// clic droit -> suppression
+			retirerBlock(event)
+		}
+	}
+
+	/// différents cas de figure dès qu'il faut retirer un block.
+	/// si aucun block à l'endroit visé, ne rien faire
+	/// si il y a un block à l'endroit visé
+	/// 	s'il est seul sur la ligne, 'retirer cette ligne'
+	///		sinon, enlever le block sans rien faire d'autre
+	function retirerBlock(event) {
+		let co = getCoordinates(event);
+		let classe = getEventClass(event);
+
+		if (classe.includes("top")) {
+			retirerEnHaut(co);
+		}
+		else if (classe.includes("right")) {
+			insererAdroite(co);
+		}
+		else if (classe.includes("bottom")) {
+			insererEnBas(co);
+		}
+		else {
+			insererAgauche(co);
+		}
+	}
+
+	function retirerEnHaut(co) {
+		let toSearch = {
+			row: co.row - 1,
+			col: co.col,
+		}
+		if (blockAcetEndroit(toSearch)) {
+			if (estSeulSurLigne(toSearch)) {
+				console.log("Boulot : retirer la ligne (tout décale en haut, depuis co)");
+			}
+			else {
+				retirerLa(toSearch);
+			}
+		}
+	}
+
+	function retirerLa(co) {
+		data.listOfCo = data.listOfCo.filter((c) => c.row != co.row || c.col != co.col);
+	}
+
+	function estSeulSurLigne(co) {
+		let c = 0;
+		data.listOfCo.forEach(coordonnee => {
+			if (coordonnee.row == co.row) {
+				c ++;
+				if (c >= 2) {
+					return false;
+				}
+			}
+		});
+		return true;
+	}
+
+	/// différents cas de figure dès qu'il faut ajouter un block
+	/// si aucun block à l'endroit visé, l'ajouter simplement
+	/// sinon 'décaler' la ligne ou la colonne visée au cran d'après, puis insérer notre block à l'endroit voulu
 	function ajouterBlock(event) {
 		let co = getCoordinates(event);
 		let classe = getEventClass(event);
@@ -143,13 +221,13 @@
 </svelte:head>
 
 <main>
-	<div class="grillage">
+	<div id="grillage">
 		{#each data.listOfCo as co}
-			<div class="block" style="grid-row:{co.row}; grid-column: {co.col};">
-				<div on:click={ajouterBlock} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-top"></div>
-				<div on:click={ajouterBlock} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-right"></div>
-				<div on:click={ajouterBlock} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-bottom"></div>
-				<div on:click={ajouterBlock} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-left"></div>
+			<div in:slide={{ duration: 300, easing: t => t * t}} out:slide={{ duration: 300, easing: t => t * t}} class="block" style="grid-row:{co.row}; grid-column: {co.col};">
+				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-top"></div>
+				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-right"></div>
+				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-bottom"></div>
+				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-left"></div>
 			</div>
 		{/each}
 	</div>
@@ -169,7 +247,7 @@
 		align-items: center;
 	}
 
-	.grillage {
+	#grillage {
 		display: grid;
 		gap: 10px;
 	}
