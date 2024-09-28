@@ -1,16 +1,45 @@
 <script>
     import { onMount } from 'svelte';
-	import { slide, fade, fly } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 
 	export let data;
 
-	// Eviter d'afficher le contextMenu à chaque click droit sur la grille
-	onMount(() => {
-		document.getElementById("grillage").addEventListener('contextmenu', (e) => {
-			e.preventDefault();
-		});
-	})
+	const GRIDRESIZELIMIT = .8;
 
+	let grillageHeight = 0;
+	let grillageWidth = 0;
+	let grillage;
+	onMount(() => {
+		grillage = document.getElementById("grillage");
+		if (grillage) {
+			grillage.addEventListener('contextmenu', (e) => {
+				e.preventDefault();
+			});
+		}
+
+		// Continually know height of the grid
+		const updateGrillageSize = () => {
+        	grillageHeight = grillage.clientHeight;
+			grillageWidth = grillage.clientWidth;
+
+			let nbPixelsCote = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cote'));
+
+			if (grillageHeight > GRIDRESIZELIMIT*window.innerHeight) {
+				let newHeight = (GRIDRESIZELIMIT*window.innerHeight) / (grillageHeight/nbPixelsCote);
+				document.documentElement.style.setProperty('--cote', newHeight+"px");
+			}
+			if (grillageWidth > GRIDRESIZELIMIT*window.innerWidth) {
+				let newHeight = (GRIDRESIZELIMIT*window.innerWidth) / (grillageWidth/nbPixelsCote);
+				document.documentElement.style.setProperty('--cote', newHeight+"px");
+			}
+      	};
+		const observer = new ResizeObserver(updateGrillageSize);
+		observer.observe(grillage);
+
+		// Clean up
+		return () => observer.disconnect();
+	});
+	
 	function handleMouseEvent(event) {
 		// clic gauche -> ajout
 		if (event.button === 0) {
@@ -309,8 +338,9 @@
 	}
 
 	#grillage {
+		border: 1px dotted black;
 		display: grid;
-		gap: 10px;
+		gap: calc(var(--cote)/7);
 	}
 
 	.block {
@@ -322,6 +352,8 @@
 
 		width: var(--cote);
 		height: var(--cote);
+
+		transition: width .1s;
 	}
 
 	[class*="border"] {
@@ -331,7 +363,7 @@
 		transition: .3s ease;
 	}
 	[class*="border"]:hover {
-		border-width: 10px;
+		border-width: calc(var(--cote)/7);
 		border-color: rgba(0, 255, 255, .7);
 		cursor: pointer;
 	}
