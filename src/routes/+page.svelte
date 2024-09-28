@@ -1,6 +1,6 @@
 <script>
     import { onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
+	import { slide, fade, fly } from 'svelte/transition';
 
 	export let data;
 
@@ -34,13 +34,70 @@
 			retirerEnHaut(co);
 		}
 		else if (classe.includes("right")) {
-			insererAdroite(co);
+			retirerAdroite(co);
 		}
 		else if (classe.includes("bottom")) {
-			insererEnBas(co);
+			retirerEnBas(co);
 		}
 		else {
-			insererAgauche(co);
+			retirerAGauche(co);
+		}
+	}
+
+	function retirerAdroite(co) {
+		let toSearch = {
+			row: co.row,
+			col: parseInt(co.col) + 1,
+		}
+		if (blockAcetEndroit(toSearch)) {
+			retirerLa(toSearch);
+			if (estSeulSurColonne(toSearch.col)) {
+				toutDecalAGauche(toSearch.col);
+			}
+		}
+	}
+
+	function retirerAGauche(co) {
+		let toSearch = {
+			row: co.row,
+			col: co.col - 1,
+		}
+		if (blockAcetEndroit(toSearch)) {
+			retirerLa(toSearch);
+			if (estSeulSurColonne(toSearch.col)) {
+				toutDecalAGauche(co.col);
+			}
+		}
+	}
+
+	function estSeulSurColonne(col) {
+		let solo = true;
+		data.listOfCo.forEach(coordonnee => {
+			if (parseInt(coordonnee.col) == parseInt(col)) {
+				solo = false;
+			}
+		});
+		return solo;
+	}
+
+	function toutDecalAGauche(col) {
+		data.listOfCo.forEach(coordonnee => {
+			if (coordonnee.col >= col) {
+				coordonnee.col --;
+			}
+		});
+	}
+
+	function retirerEnBas(co) {
+		let toSearch = {
+			row: parseInt(co.row) + 1,
+			col: co.col,
+		}
+		if (blockAcetEndroit(toSearch)) {
+			retirerLa(toSearch);
+			if (estSeulSurLigne(toSearch.row)) {
+				toutDecalEnHaut(toSearch.row);
+			}
 		}
 	}
 
@@ -50,30 +107,34 @@
 			col: co.col,
 		}
 		if (blockAcetEndroit(toSearch)) {
-			if (estSeulSurLigne(toSearch)) {
-				console.log("Boulot : retirer la ligne (tout décale en haut, depuis co)");
-			}
-			else {
-				retirerLa(toSearch);
+			retirerLa(toSearch);
+			if (estSeulSurLigne(toSearch.row)) {
+				toutDecalEnHaut(co.row);
 			}
 		}
+	}
+
+	function toutDecalEnHaut(row) {
+		data.listOfCo.forEach(coordonnee => {
+			if (coordonnee.row >= row) {
+				coordonnee.row --;
+			}
+		});
 	}
 
 	function retirerLa(co) {
 		data.listOfCo = data.listOfCo.filter((c) => c.row != co.row || c.col != co.col);
 	}
 
-	function estSeulSurLigne(co) {
-		let c = 0;
+	function estSeulSurLigne(row) {
+		let solo = true;
 		data.listOfCo.forEach(coordonnee => {
-			if (coordonnee.row == co.row) {
-				c ++;
-				if (c >= 2) {
-					return false;
-				}
+			if (parseInt(coordonnee.row) == parseInt(row)) {
+				// plus dès qu'un block est trouvé car l'élément car le block a déjà été enlevé. On chercher donc s'il y a le moindre autre block sur la ligne
+				solo = false;
 			}
 		});
-		return true;
+		return solo;
 	}
 
 	/// différents cas de figure dès qu'il faut ajouter un block
@@ -223,7 +284,7 @@
 <main>
 	<div id="grillage">
 		{#each data.listOfCo as co}
-			<div in:slide={{ duration: 300, easing: t => t * t}} out:slide={{ duration: 300, easing: t => t * t}} class="block" style="grid-row:{co.row}; grid-column: {co.col};">
+			<div transition:fly={{ y: 100, duration: 100 }} class="block" style="grid-row:{co.row}; grid-column: {co.col};">
 				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-top"></div>
 				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-right"></div>
 				<div on:mousedown={handleMouseEvent} role="button" tabindex="0" on:keypress={handleKeyPress} class="border-bottom"></div>
